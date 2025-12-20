@@ -132,11 +132,19 @@ export const productsApi = {
     if (filters?.limit) params.set('limit', filters.limit.toString());
     
     const query = params.toString();
-    return fetchApi<{ products: Product[]; total: number; offset: number | null }>(`/v1/products${query ? `?${query}` : ''}`);
+    const res = await fetchApi<{ data: Product[]; total?: number; offset?: number | null; limit?: number | null }>(
+      `/v1/products${query ? `?${query}` : ''}`
+    );
+    return {
+      products: res.data,
+      total: res.total ?? res.data.length,
+      offset: res.offset ?? null,
+    };
   },
 
   getById: async (id: number): Promise<Product> => {
-    return fetchApi<Product>(`/v1/products/${id}`);
+    const res = await fetchApi<{ data: Product }>(`/v1/products/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateProductInput): Promise<Product> => {
@@ -164,11 +172,15 @@ export const productsApi = {
 
 export const customersApi = {
   getAll: async (): Promise<Customer[]> => {
-    return fetchApi<Customer[]>('/v1/customers');
+    const res = await fetchApi<{ data: Customer[]; total?: number }>(
+      '/v1/customers'
+    );
+    return res.data;
   },
 
   getById: async (id: number): Promise<Customer> => {
-    return fetchApi<Customer>(`/v1/customers/${id}`);
+    const res = await fetchApi<{ data: Customer }>(`/v1/customers/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateCustomerInput): Promise<Customer> => {
@@ -196,11 +208,15 @@ export const customersApi = {
 
 export const ordersApi = {
   getAll: async (): Promise<Order[]> => {
-    return fetchApi<Order[]>('/v1/orders');
+    const res = await fetchApi<{ data: Order[]; total?: number; offset?: number | null; limit?: number | null }>(
+      '/v1/orders'
+    );
+    return res.data;
   },
 
   getById: async (id: number): Promise<Order> => {
-    return fetchApi<Order>(`/v1/orders/${id}`);
+    const res = await fetchApi<{ data: Order }>(`/v1/orders/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateOrderInput): Promise<Order> => {

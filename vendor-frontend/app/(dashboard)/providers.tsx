@@ -13,7 +13,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <TooltipProvider>
-        {children}
+          {children}
         <Toaster position="top-right" richColors />
       </TooltipProvider>
     </ThemeProvider>
