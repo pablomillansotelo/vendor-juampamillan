@@ -15,8 +15,8 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.deacero.com',
-        pathname: '/**'
+        hostname: 'placehold.co',
+        pathname: '/**',
       }
     ], 
   },

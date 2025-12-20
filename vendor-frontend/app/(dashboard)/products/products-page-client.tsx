@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { File, PlusCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 interface ProductsPageClientProps {
   initialProducts: Product[];
@@ -97,11 +98,13 @@ export function ProductsPageClient({
                 Exportar
               </span>
             </Button>
-            <Button size="sm" className="h-8 gap-1">
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Agregar Producto
-              </span>
+            <Button asChild size="sm" className="h-8 gap-1">
+              <Link href="/products/new">
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Agregar Producto
+                </span>
+              </Link>
             </Button>
           </div>
         </div>

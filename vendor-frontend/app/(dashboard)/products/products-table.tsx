@@ -44,19 +44,14 @@ export function ProductsTable({
   const currentOffset = searchParams.get('offset') ? Number(searchParams.get('offset')) : productsPerPage;
 
   useEffect(() => {
-    const handleSearch = () => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (searchTerm) {
-        params.set('q', searchTerm);
-      } else {
-        params.delete('q');
-      }
-      params.delete('offset'); // Reset offset on search
-      router.push(`/products?${params.toString()}`);
-    };
-
-    const timeoutId = setTimeout(handleSearch, 500);
-    return () => clearTimeout(timeoutId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchTerm) {
+      params.set('q', searchTerm);
+    } else {
+      params.delete('q');
+    }
+    params.delete('offset'); // Reset offset on search
+    router.push(`/products?${params.toString()}`);
   }, [searchTerm, router, searchParams]);
 
   function prevPage() {
@@ -91,9 +86,9 @@ export function ProductsTable({
       <CardContent>
         <div className="mb-4">
           <TableSearch
-            value={searchTerm}
-            onChange={setSearchTerm}
             placeholder="Buscar productos..."
+            initialValue={searchTerm}
+            onSearch={setSearchTerm}
           />
         </div>
         <Table>

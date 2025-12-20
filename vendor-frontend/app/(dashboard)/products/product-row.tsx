@@ -16,6 +16,7 @@ import { Product as ProductType, productsApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useState } from 'react';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
+import Link from 'next/link';
 
 interface ProductProps {
   product: ProductType;
@@ -94,7 +95,9 @@ export function Product({ product, onRefresh }: ProductProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-              <DropdownMenuItem>Editar</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/products/${product.id}/edit`}>Editar</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
                 className="text-destructive"

@@ -103,7 +103,7 @@ export interface Product {
   imageUrl: string;
   name: string;
   status: 'active' | 'inactive' | 'archived';
-  price: string;
+  price: number;
   stock: number;
   availableAt: string | Date;
 }
@@ -112,7 +112,7 @@ export interface CreateProductInput {
   imageUrl: string;
   name: string;
   status: 'active' | 'inactive' | 'archived';
-  price: string;
+  price: number;
   stock: number;
   availableAt: string;
 }
@@ -121,7 +121,7 @@ export interface UpdateProductInput {
   imageUrl?: string;
   name?: string;
   status?: 'active' | 'inactive' | 'archived';
-  price?: string;
+  price?: number;
   stock?: number;
   availableAt?: string;
 }
@@ -448,5 +448,6 @@ export const notificationsApi = {
     });
   },
 };
+
 
 

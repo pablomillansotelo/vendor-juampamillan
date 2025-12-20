@@ -9,17 +9,13 @@ import {
   Table
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { SelectUser } from '@/lib/db';
-//import { deleteUser } from './actions';
 import { useRouter } from 'next/navigation';
-
-import { deleteUserById } from '@/lib/db';
 
 export function UsersTable({
   users,
   offset
 }: {
-  users: SelectUser[];
+  users: Array<{ id: number; name: string; email: string; username?: string | null }>;
   offset: number | null;
 }) {
   const router = useRouter();
@@ -60,7 +56,7 @@ export function UsersTable({
   );
 }
 
-function UserRow({ user }: { user: SelectUser }) {
+function UserRow({ user }: { user: { id: number; name: string; email: string; username?: string | null } }) {
   const userId = user.id;
   //const deleteUserWithId = deleteUser.bind(null, userId);
 
