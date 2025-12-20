@@ -142,14 +142,20 @@ export const productsApi = {
     if (filters?.limit) params.set('limit', filters.limit.toString());
     
     const query = params.toString();
-    return fetchApi<{ products: Product[]; total: number; offset: number | null }>(
+    const res = await fetchApi<{ data: Product[]; total: number; offset: number | null; limit: number | null }>(
       VENDOR_API_BASE_URL,
       `/products${query ? `?${query}` : ''}`
     );
+    return {
+      products: res.data,
+      total: res.total ?? res.data.length,
+      offset: res.offset ?? null,
+    };
   },
 
   getById: async (id: number): Promise<Product> => {
-    return fetchApi<Product>(VENDOR_API_BASE_URL, `/products/${id}`);
+    const res = await fetchApi<{ data: Product }>(VENDOR_API_BASE_URL, `/products/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateProductInput): Promise<Product> => {
@@ -200,11 +206,13 @@ export interface UpdateCustomerInput {
 
 export const customersApi = {
   getAll: async (): Promise<Customer[]> => {
-    return fetchApi<Customer[]>(VENDOR_API_BASE_URL, '/customers');
+    const res = await fetchApi<{ data: Customer[]; total?: number }>(VENDOR_API_BASE_URL, '/customers');
+    return res.data;
   },
 
   getById: async (id: number): Promise<Customer> => {
-    return fetchApi<Customer>(VENDOR_API_BASE_URL, `/customers/${id}`);
+    const res = await fetchApi<{ data: Customer }>(VENDOR_API_BASE_URL, `/customers/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateCustomerInput): Promise<Customer> => {
@@ -339,11 +347,16 @@ export interface UpdateOrderInput {
 
 export const ordersApi = {
   getAll: async (): Promise<Order[]> => {
-    return fetchApi<Order[]>(VENDOR_API_BASE_URL, '/orders');
+    const res = await fetchApi<{ data: Order[]; total?: number; offset?: number | null; limit?: number | null }>(
+      VENDOR_API_BASE_URL,
+      '/orders'
+    );
+    return res.data;
   },
 
   getById: async (id: number): Promise<Order> => {
-    return fetchApi<Order>(VENDOR_API_BASE_URL, `/orders/${id}`);
+    const res = await fetchApi<{ data: Order }>(VENDOR_API_BASE_URL, `/orders/${id}`);
+    return res.data;
   },
 
   create: async (data: CreateOrderInput): Promise<Order> => {
@@ -448,6 +461,7 @@ export const notificationsApi = {
     });
   },
 };
+
 
 
 

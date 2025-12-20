@@ -19,7 +19,12 @@ export const ordersRouter = new Elysia({ prefix: '/orders' })
 		async () => {
 			try {
 				const allOrders = await OrdersService.getAllOrders()
-				return allOrders
+				return {
+					data: allOrders,
+					total: allOrders.length,
+					offset: null,
+					limit: null,
+				}
 			} catch (error: any) {
 				throw new Error(error.message)
 			}
@@ -39,7 +44,7 @@ export const ordersRouter = new Elysia({ prefix: '/orders' })
 		async ({ params }) => {
 			try {
 				const order = await OrdersService.getOrderById(Number(params.id))
-				return order
+				return { data: order }
 			} catch (error: any) {
 				throw new Error(error.message)
 			}

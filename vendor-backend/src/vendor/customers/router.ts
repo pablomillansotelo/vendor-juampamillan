@@ -10,7 +10,12 @@ export const customersRouter = new Elysia({ prefix: '/customers' })
 		async () => {
 			try {
 				const allCustomers = await CustomersService.getAllCustomers()
-				return allCustomers
+				return {
+					data: allCustomers,
+					total: allCustomers.length,
+					offset: null,
+					limit: null,
+				}
 			} catch (error: any) {
 				throw new Error(error.message)
 			}
@@ -30,7 +35,7 @@ export const customersRouter = new Elysia({ prefix: '/customers' })
 		async ({ params }) => {
 			try {
 				const customer = await CustomersService.getCustomerById(Number(params.id))
-				return customer
+				return { data: customer }
 			} catch (error: any) {
 				throw new Error(error.message)
 			}

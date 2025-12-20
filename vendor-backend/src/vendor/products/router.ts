@@ -26,7 +26,12 @@ export const productsRouter = new Elysia({ prefix: '/products' })
 				if (queryParams?.limit) filters.limit = Number(queryParams.limit)
 				
 				const result = await ProductsService.getAllProducts(Object.keys(filters).length > 0 ? filters : undefined)
-				return result
+				return {
+					data: result.products,
+					total: result.total,
+					offset: result.offset,
+					limit: filters.limit ?? null,
+				}
 			} catch (error: any) {
 				throw new Error(error.message)
 			}
@@ -52,7 +57,7 @@ export const productsRouter = new Elysia({ prefix: '/products' })
 		async ({ params }) => {
 			try {
 				const product = await ProductsService.getProductById(Number(params.id))
-				return product
+				return { data: product }
 			} catch (error: any) {
 				throw new Error(error.message)
 			}
