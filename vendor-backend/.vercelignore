@@ -1,0 +1,4 @@
+# No ignorar la carpeta drizzle - debe estar incluida en el build
+# node_modules se ignora automáticamente
+node_modules/
+

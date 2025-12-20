@@ -1,0 +1,22 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1766190000000,
+      "tag": "0000_vendor_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766220000000,
+      "tag": "0001_vendor_order_items_payments",
+      "breakpoints": true
+    }
+  ]
+}
+
+
