@@ -6,8 +6,10 @@
 // Nota: usamos proxies distintos para mantener API keys en el servidor.
 // - Permit: usuarios + notificaciones
 // - Vendor: productos + clientes + órdenes
+// - Inventory: stock + mapeos (lectura)
 const PERMIT_API_BASE_URL = '/api/permit';
 const VENDOR_API_BASE_URL = '/api/vendor';
+const INVENTORY_API_BASE_URL = '/api/inventory';
 
 class ApiError extends Error {
   constructor(
@@ -459,6 +461,116 @@ export const notificationsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+};
+
+// ==================== INVENTORY (Stock y Mapeos - Lectura) ====================
+
+export interface ExternalProduct {
+  id: number;
+  sku: string;
+  name: string;
+  status: 'active' | 'inactive' | 'archived';
+  basePrice: number;
+  currency: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface StockLevel {
+  id: number;
+  warehouseId: number;
+  externalProductId: number;
+  onHand: number;
+  reserved: number;
+  updatedAt: string | Date;
+  warehouse?: {
+    id: number;
+    code: string;
+    name: string;
+  };
+}
+
+export interface Mapping {
+  id: number;
+  internalItemId: number;
+  externalProductId: number;
+  note?: string | null;
+  createdAt: string | Date;
+}
+
+export const inventoryApi = {
+  // Buscar producto externo por SKU o nombre
+  getExternalProductBySku: async (sku: string): Promise<ExternalProduct | null> => {
+    try {
+      const res = await fetchApi<{ data: ExternalProduct[] }>(
+        INVENTORY_API_BASE_URL,
+        `/v1/external-products?q=${encodeURIComponent(sku)}`
+      );
+      // Buscar coincidencia exacta de SKU primero
+      let product = res.data.find(p => p.sku.toLowerCase() === sku.toLowerCase());
+      // Si no se encuentra por SKU, buscar por nombre (coincidencia exacta)
+      if (!product) {
+        product = res.data.find(p => p.name.toLowerCase() === sku.toLowerCase());
+      }
+      // Si aún no se encuentra, buscar coincidencia parcial por nombre
+      if (!product && res.data.length > 0) {
+        product = res.data.find(p => 
+          p.name.toLowerCase().includes(sku.toLowerCase()) || 
+          sku.toLowerCase().includes(p.name.toLowerCase())
+        );
+      }
+      return product || null;
+    } catch (error) {
+      console.error('Error al buscar producto externo:', error);
+      return null;
+    }
+  },
+
+  // Buscar producto externo por nombre (alias para claridad)
+  getExternalProductByName: async (name: string): Promise<ExternalProduct | null> => {
+    return inventoryApi.getExternalProductBySku(name);
+  },
+
+  // Obtener stock levels por producto externo
+  getStockLevelsByProduct: async (externalProductId: number): Promise<StockLevel[]> => {
+    try {
+      const res = await fetchApi<{ data: StockLevel[] }>(
+        INVENTORY_API_BASE_URL,
+        `/v1/stock-levels?externalProductId=${externalProductId}`
+      );
+      return res.data;
+    } catch (error) {
+      console.error('Error al obtener stock levels:', error);
+      return [];
+    }
+  },
+
+  // Obtener stock total disponible (suma de todos los almacenes)
+  getTotalAvailableStock: async (externalProductId: number): Promise<number> => {
+    try {
+      const stockLevels = await inventoryApi.getStockLevelsByProduct(externalProductId);
+      return stockLevels.reduce((total, level) => {
+        return total + (level.onHand - level.reserved);
+      }, 0);
+    } catch (error) {
+      console.error('Error al calcular stock total:', error);
+      return 0;
+    }
+  },
+
+  // Obtener mapeos por producto externo
+  getMappingsByExternalProduct: async (externalProductId: number): Promise<Mapping[]> => {
+    try {
+      const res = await fetchApi<{ data: Mapping[] }>(
+        INVENTORY_API_BASE_URL,
+        `/v1/mappings/internal-to-external?externalProductId=${externalProductId}`
+      );
+      return res.data;
+    } catch (error) {
+      console.error('Error al obtener mapeos:', error);
+      return [];
+    }
   },
 };
 

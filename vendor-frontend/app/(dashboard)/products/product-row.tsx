@@ -10,13 +10,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Link2 } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Product as ProductType, productsApi } from '@/lib/api';
+import { Product as ProductType, productsApi, inventoryApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
 import Link from 'next/link';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ProductProps {
   product: ProductType;
@@ -26,6 +31,9 @@ interface ProductProps {
 export function Product({ product, onRefresh }: ProductProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [realStock, setRealStock] = useState<number | null>(null);
+  const [isLoadingStock, setIsLoadingStock] = useState(false);
+  const [hasMapping, setHasMapping] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -55,6 +63,38 @@ export function Product({ product, onRefresh }: ProductProps) {
     }
   };
 
+  // Cargar stock real desde Inventory y verificar mapeos
+  useEffect(() => {
+    const loadInventoryData = async () => {
+      setIsLoadingStock(true);
+      try {
+        // Buscar producto externo por nombre
+        const externalProduct = await inventoryApi.getExternalProductByName(product.name);
+        if (externalProduct) {
+          // Si encontramos el producto, obtener stock total disponible
+          const totalStock = await inventoryApi.getTotalAvailableStock(externalProduct.id);
+          setRealStock(totalStock);
+          
+          // Verificar si tiene mapeos con items internos
+          const mappings = await inventoryApi.getMappingsByExternalProduct(externalProduct.id);
+          setHasMapping(mappings.length > 0);
+        } else {
+          // Si no se encuentra, usar el stock del backend de Vendor (legacy)
+          setRealStock(null);
+          setHasMapping(false);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos desde Inventory:', error);
+        setRealStock(null);
+        setHasMapping(false);
+      } finally {
+        setIsLoadingStock(false);
+      }
+    };
+
+    loadInventoryData();
+  }, [product.name]);
+
   const formatDate = (date: string | Date) => {
     const d = new Date(date);
     return d.toLocaleDateString('es-ES', {
@@ -63,6 +103,10 @@ export function Product({ product, onRefresh }: ProductProps) {
       year: 'numeric'
     });
   };
+
+  // Mostrar stock real si está disponible, sino mostrar stock legacy
+  const displayStock = realStock !== null ? realStock : product.stock;
+  const stockLabel = realStock !== null ? 'Stock (Inventory)' : 'Stock (Vendor)';
 
   return (
     <>
@@ -76,12 +120,39 @@ export function Product({ product, onRefresh }: ProductProps) {
             width="64"
           />
         </TableCell>
-        <TableCell className="font-medium">{product.name}</TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            <span>{product.name}</span>
+            {hasMapping && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link2 className="h-4 w-4 text-blue-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Este producto tiene mapeo con items internos de Factory</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </TableCell>
         <TableCell>
           {getStatusBadge(product.status)}
         </TableCell>
         <TableCell className="hidden md:table-cell">{`$${product.price}`}</TableCell>
-        <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
+        <TableCell className="hidden md:table-cell">
+          {isLoadingStock ? (
+            <span className="text-muted-foreground text-sm">Cargando...</span>
+          ) : (
+            <div className="flex flex-col">
+              <span className={realStock !== null ? 'font-semibold text-blue-600' : ''}>
+                {displayStock}
+              </span>
+              {realStock !== null && (
+                <span className="text-xs text-muted-foreground">{stockLabel}</span>
+              )}
+            </div>
+          )}
+        </TableCell>
         <TableCell className="hidden md:table-cell">
           {formatDate(product.availableAt)}
         </TableCell>
