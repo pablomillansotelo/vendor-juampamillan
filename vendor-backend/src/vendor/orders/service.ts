@@ -5,6 +5,12 @@ import { products } from '../products/schema.js'
 import { eq } from 'drizzle-orm'
 import { emitPermitAuditLog } from '../../audit/permit-client.js'
 import { financeCreateArPayment } from '../../integrations/finance-client.js'
+import {
+	inventoryFindExternalProductByName,
+	inventoryGetTotalAvailableStock,
+	inventoryGetMappingToInternalItem,
+} from '../../integrations/inventory-client.js'
+import { factoryCreateProductionOrder } from '../../integrations/factory-client.js'
 
 export interface CreateOrderInput {
 	customerId: number
@@ -136,6 +142,14 @@ export class OrdersService {
 			// Calcular items y total (si vienen items)
 			let computedTotal = 0
 			const itemsToInsert: any[] = []
+			// Almacenar información para crear órdenes de producción después
+			const pendingProductionOrders: Array<{
+				productName: string
+				internalItemId: number
+				quantity: number
+				availableStock: number
+				requestedQuantity: number
+			}> = []
 
 			if (data.items && data.items.length > 0) {
 				for (const item of data.items) {
@@ -164,6 +178,40 @@ export class OrdersService {
 						discountPercent: discountPercent.toString(),
 						lineTotal: lineTotal.toString(),
 					})
+
+					// Verificar stock en Inventory (sin bloquear si falla)
+					try {
+						// Buscar producto externo en Inventory por nombre
+						const externalProduct = await inventoryFindExternalProductByName(productRow.name)
+						
+						if (externalProduct) {
+							// Obtener stock disponible total
+							const availableStock = await inventoryGetTotalAvailableStock(externalProduct.id)
+							
+							// Si no hay stock suficiente, preparar orden de producción
+							if (availableStock < item.quantity) {
+								// Buscar mapeo a item interno de Factory
+								const mapping = await inventoryGetMappingToInternalItem(externalProduct.id)
+								
+								if (mapping) {
+									// Calcular cantidad a producir (diferencia entre lo solicitado y lo disponible)
+									const quantityToProduce = item.quantity - availableStock
+									
+									// Guardar para crear después de tener el orderId
+									pendingProductionOrders.push({
+										productName: productRow.name,
+										internalItemId: mapping.internalItemId,
+										quantity: quantityToProduce,
+										availableStock,
+										requestedQuantity: item.quantity,
+									})
+								}
+							}
+						}
+					} catch (stockError: any) {
+						// Silencioso: si no podemos verificar stock, no bloqueamos la creación de la orden
+						console.error(`Error al verificar stock para producto ${productRow.name}:`, stockError)
+					}
 				}
 			}
 
@@ -185,6 +233,65 @@ export class OrdersService {
 						...i,
 					}))
 				)
+			}
+
+			// Crear órdenes de producción ahora que tenemos el orderId
+			if (pendingProductionOrders.length > 0) {
+				for (const prodOrder of pendingProductionOrders) {
+					try {
+						const productionOrder = await factoryCreateProductionOrder({
+							vendorOrderId: orderId,
+							internalItemId: prodOrder.internalItemId,
+							quantity: prodOrder.quantity,
+							priority: 1, // Alta prioridad para órdenes sin stock
+							notes: `Orden automática: Stock insuficiente. Disponible: ${prodOrder.availableStock}, Solicitado: ${prodOrder.requestedQuantity}, Producto: ${prodOrder.productName}`,
+						})
+						
+						// Log de la creación de orden de producción
+						await emitPermitAuditLog({
+							userId: audit?.userId ?? null,
+							action: 'production_order_created',
+							entityType: 'orders',
+							entityId: orderId,
+							changes: {
+								after: {
+									productionOrderId: productionOrder.id,
+									internalItemId: prodOrder.internalItemId,
+									quantity: prodOrder.quantity,
+									reason: 'Stock insuficiente',
+									productName: prodOrder.productName,
+								},
+							},
+							metadata: {
+								source: 'vendor-backend',
+								integration: 'factory',
+							},
+						})
+					} catch (factoryError: any) {
+						// Silencioso: si no podemos crear la orden de producción, no bloqueamos
+						console.error(`Error al crear orden de producción para ${prodOrder.productName}:`, factoryError)
+						
+						// Log del error (best-effort)
+						await emitPermitAuditLog({
+							userId: audit?.userId ?? null,
+							action: 'production_order_creation_failed',
+							entityType: 'orders',
+							entityId: orderId,
+							changes: {
+								after: {
+									error: factoryError.message || String(factoryError),
+									productName: prodOrder.productName,
+									internalItemId: prodOrder.internalItemId,
+									quantity: prodOrder.quantity,
+								},
+							},
+							metadata: {
+								source: 'vendor-backend',
+								integration: 'factory',
+							},
+						})
+					}
+				}
 			}
 
 			// Insertar evento inicial de status
