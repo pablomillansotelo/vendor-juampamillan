@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
-    const nextResponse = NextResponse.json({ data });
+    const backendData = await response.json();
+    // El backend ya devuelve { data: [...] }, no necesitamos envolverlo de nuevo
+    const nextResponse = NextResponse.json(backendData);
     nextResponse.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     
     return addRateLimitHeaders(nextResponse, rateLimitResult);

@@ -522,7 +522,9 @@ export const inventoryApi = {
         INVENTORY_API_BASE_URL,
         `/v1/stock-levels?externalProductId=${externalProductId}`
       );
-      return res.data;
+      // Asegurar que siempre devolvemos un array
+      const stockLevels = Array.isArray(res.data) ? res.data : [];
+      return stockLevels;
     } catch (error) {
       console.error('Error al obtener stock levels:', error);
       return [];
@@ -533,8 +535,15 @@ export const inventoryApi = {
   getTotalAvailableStock: async (externalProductId: number): Promise<number> => {
     try {
       const stockLevels = await inventoryApi.getStockLevelsByProduct(externalProductId);
+      // Asegurar que stockLevels es un array antes de usar reduce
+      if (!Array.isArray(stockLevels)) {
+        console.warn('getStockLevelsByProduct no devolvió un array:', stockLevels);
+        return 0;
+      }
       return stockLevels.reduce((total, level) => {
-        return total + (level.onHand - level.reserved);
+        const onHand = Number(level.onHand) || 0;
+        const reserved = Number(level.reserved) || 0;
+        return total + (onHand - reserved);
       }, 0);
     } catch (error) {
       console.error('Error al calcular stock total:', error);
