@@ -7,3 +7,5 @@ import { redirect } from 'next/navigation';
 export default function EditProductPage() {
   redirect('/products');
 }
+
+// Nota: ProductEditPageClient ya no se usa porque redirigimos en el servidor

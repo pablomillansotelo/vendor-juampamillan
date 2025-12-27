@@ -5,6 +5,7 @@ import { applyRateLimit, addRateLimitHeaders } from '@/lib/rate-limit-helper';
 const VENDOR_API_URL = process.env.VENDOR_API_URL || 'http://localhost:8000';
 const VENDOR_API_KEY = process.env.VENDOR_API_KEY || '';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export async function GET(request: NextRequest) {

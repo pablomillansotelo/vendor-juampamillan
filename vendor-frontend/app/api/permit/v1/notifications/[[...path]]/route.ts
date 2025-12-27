@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { applyRateLimit, addRateLimitHeaders } from '@/lib/rate-limit-helper';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 30;
 
 const PERMIT_API_URL = process.env.PERMIT_API_URL || 'http://localhost:8000';

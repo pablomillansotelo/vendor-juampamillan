@@ -4,6 +4,7 @@ import { usersApi } from '@/lib/api-server';
 import { applyRateLimit, addRateLimitHeaders } from '@/lib/rate-limit-helper';
 
 // Cache por 60 segundos para mejorar performance
+export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export async function GET(request: NextRequest) {
